@@ -19,12 +19,14 @@ if (! $cli_path or ! is_dir($cli_path)) {
 }
 $cli_path = realpath($cli_path) . DIRECTORY_SEPARATOR;
 
-if (! in_array($cli_type, ['lang', 'xliff'])) {
+if (! in_array($cli_type, ['lang', 'xliff', 'po'])) {
     die("Unknown type {$cli_type}.\n");
 }
 
-$changesets = Utils::getChangesets($cli_path, 'en-US/');
-$stats = Stats::getStats($cli_path . 'en-US/', $changesets, $cli_type);
+$subfolder = $cli_type == 'po' ? 'templates/' : 'en-US/';
+
+$changesets = Utils::getChangesets($cli_path, $subfolder);
+$stats = Stats::getStats($cli_path . $subfolder, $changesets, $cli_type);
 $overall_stats = Stats::getGeneralStats($stats);
 
 echo "Total number of strings at the end of the period, number of words between parenthesis.\n";

@@ -72,7 +72,11 @@ class Stats
                 'total'     => 0,
                 'total_w'   => 0,
             ];
-            $file_list = self::getDirContents($path, $format);
+            if ($format == 'po') {
+                $file_list = self::getDirContents($path, 'pot');
+            } else {
+                $file_list = self::getDirContents($path, $format);
+            }
 
             # Create cache of strings
             $cache = [];
@@ -87,6 +91,10 @@ class Stats
                         break;
                     case 'xliff':
                         $file_content['strings'] = Xliff::getStrings($current_filename);
+                        $cache = array_merge($cache, $file_content['strings']);
+                        break;
+                    case 'po':
+                        $file_content['strings'] = Po::getStrings($current_filename, true);
                         $cache = array_merge($cache, $file_content['strings']);
                         break;
                     default:

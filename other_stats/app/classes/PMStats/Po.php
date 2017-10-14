@@ -17,16 +17,16 @@ class Po
      * Loads strings from a .po file
      *
      * @param string  $po_path      Path to the .po to load
-     * @param string  $file_name    Name of the file extracted
-     * @param string  $project_name The project this string belongs to
      * @param boolean $template     If I'm looking at templates
      *
      * @return array Array of strings as [string_id => translation]
      */
-    public static function getStrings($po_path, $file_name, $project_name, $template = false)
+    public static function getStrings($po_path, $template = false)
     {
         $translations = Translations::fromPoFile($po_path);
         $strings = [];
+
+        $file_name = basename($po_path);
 
         foreach ($translations as $translation_obj) {
             $translated_string = $translation_obj->getTranslation();
@@ -47,7 +47,6 @@ class Po
             }
 
             $string_id = self::generateStringID(
-                $project_name,
                 $file_name,
                 $translation_obj->getContext() . '-' . $translation_obj->getOriginal()
             );
@@ -58,7 +57,6 @@ class Po
             // the only English plural form
             if ($translation_obj->hasPluralTranslations()) {
                 $string_id = self::generateStringID(
-                    $project_name,
                     $file_name,
                     $translation_obj->getContext() . '-' . $translation_obj->getPlural()
                 );
@@ -74,14 +72,13 @@ class Po
     /**
      * Generate a unique ID for a string to store in Transvision.
      *
-     * @param string $project_name The project this string belongs to
      * @param string $file_name    .po file name
      * @param string $string_id    String ID (context-original text)
      *
      * @return string unique ID such as focus_android/app.po:1dafea7725862ca854c408f0e2df9c88
      */
-    public static function generateStringID($project_name, $file_name, $string_id)
+    public static function generateStringID($file_name, $string_id)
     {
-        return "{$project_name}/{$file_name}:" . hash('md5', $string_id);
+        return "{$file_name}:" . hash('md5', $string_id);
     }
 }
