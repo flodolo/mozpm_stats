@@ -2,19 +2,29 @@
 <?php
 namespace PMStats;
 
-$command_name = 'stats_lang';
+$command_name = 'extract_stats';
 $command_help = "{$command_name} - Get stats for all lang files in a folder\n" .
-                "Usage: {$command_name} [path]\n\n" .
+                "Usage: {$command_name} [type] [path]\n\n" .
                 "Example: {$command_name} ~/git/appstores\n";
-$min_parameters = 1;
+$min_parameters = 2;
 $missing_parameter = "This command needs more parameters, please check {$command_name} --help.\n";
 require_once __DIR__ . '/../inc/cli_init.php';
 
 // User provided variables
-$cli_path = Utils::getCliParam(1, $argv, '');
+$cli_type = Utils::getCliParam(1, $argv, '');
+$cli_path = Utils::getCliParam(2, $argv, '');
+
+if (! $cli_path or ! is_dir($cli_path)) {
+    die("Path is empty or doesn't exist.\n");
+}
+$cli_path = realpath($cli_path) . DIRECTORY_SEPARATOR;
+
+if (! in_array($cli_type, ['lang', 'xliff'])) {
+    die("Unknown type {$cli_type}.\n");
+}
 
 $changesets = Utils::getChangesets($cli_path, 'en-US/');
-$stats = Stats::getStats($cli_path . 'en-US/', $changesets, 'lang');
+$stats = Stats::getStats($cli_path . 'en-US/', $changesets, $cli_type);
 $overall_stats = Stats::getGeneralStats($stats);
 
 echo "Total number of strings at the end of the period, number of words between parenthesis.\n";

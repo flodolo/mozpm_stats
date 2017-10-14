@@ -26,7 +26,7 @@ class Stats
         foreach ($rii as $file) {
             if (! $file->isDir()) {
                 $ext = pathinfo($file, PATHINFO_EXTENSION);
-                if ($ext == 'lang') {
+                if ($ext == $extension) {
                     $files[] = $file->getPathname();
                 }
             }
@@ -72,7 +72,7 @@ class Stats
                 'total'     => 0,
                 'total_w'   => 0,
             ];
-            $file_list = self::getDirContents($path, 'lang');
+            $file_list = self::getDirContents($path, $format);
 
             # Create cache of strings
             $cache = [];
@@ -80,19 +80,17 @@ class Stats
                 switch ($format) {
                     case 'lang':
                         $file_content = DotLangParser::parseFile($current_filename);
+                        foreach ($file_content['strings'] as $string_id => $string_value) {
+                            $id = $current_filename . ':' . hash('md5', $string_id);
+                            $cache[$id] = $string_value;
+                        }
+                        break;
+                    case 'xliff':
+                        $file_content['strings'] = Xliff::getStrings($current_filename);
+                        $cache = array_merge($cache, $file_content['strings']);
                         break;
                     default:
                         break;
-                }
-                foreach ($file_content['strings'] as $string_id => $string_value) {
-                    switch ($format) {
-                        case 'lang':
-                            $id = $current_filename . ':' . hash('md5', $string_id);
-                            break;
-                        default:
-                            break;
-                    }
-                    $cache[$id] = $string_value;
                 }
                 $stats[$day]['total'] += count($file_content['strings']);
                 $stats[$day]['total_w'] += array_sum(array_map('self::getWordCount', $file_content['strings']));
