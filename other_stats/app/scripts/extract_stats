@@ -1,0 +1,37 @@
+#!/usr/bin/env php
+<?php
+namespace PMStats;
+
+$command_name = 'extract_stats';
+$command_help = "{$command_name} - Get stats for all lang files in a folder\n" .
+                "Usage: {$command_name} [type] [path]\n\n" .
+                "Example: {$command_name} ~/git/appstores\n";
+$min_parameters = 2;
+$missing_parameter = "This command needs more parameters, please check {$command_name} --help.\n";
+require_once __DIR__ . '/../inc/cli_init.php';
+
+// User provided variables
+$cli_type = Utils::getCliParam(1, $argv, '');
+$cli_path = Utils::getCliParam(2, $argv, '');
+
+if (! $cli_path or ! is_dir($cli_path)) {
+    die("Path is empty or doesn't exist.\n");
+}
+$cli_path = realpath($cli_path) . DIRECTORY_SEPARATOR;
+
+if (! in_array($cli_type, ['lang', 'xliff', 'po'])) {
+    die("Unknown type {$cli_type}.\n");
+}
+
+$subfolder = $cli_type == 'po' ? 'templates/' : 'en-US/';
+
+$changesets = Utils::getChangesets($cli_path, $subfolder);
+$stats = Stats::getStats($cli_path . $subfolder, $changesets, $cli_type);
+$overall_stats = Stats::getGeneralStats($stats);
+
+echo "Total number of strings at the end of the period, number of words between parenthesis.\n";
+foreach ($overall_stats as $year => $data) {
+    echo "{$year}: {$data['total']} ({$data['total_w']}) total, "
+         . "{$data['added']} ({$data['added_w']}) added, "
+         . "{$data['removed']} ({$data['removed_w']}) removed.\n";
+}
