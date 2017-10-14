@@ -35,18 +35,7 @@ $get_words = function ($item) {
     return str_word_count(strip_tags($item));
 };
 
-chdir($cli_path);
-exec('git checkout master');
-exec('git log --pretty=format:"%H %aI" en-US/', $log);
-$log = array_reverse($log);
-
-$changesets = [];
-foreach ($log as $line) {
-    $date = substr($line, 41, 10);
-    $date = str_replace('-', '', $date);
-    $changesets[$date] = substr($line, 0, 40);;
-}
-$changesets[date('Ymd')] = 'master';
+$changesets = Utils::getChangesets($cli_path, 'en-US/');
 
 $previous_cache = [];
 $stats = [];

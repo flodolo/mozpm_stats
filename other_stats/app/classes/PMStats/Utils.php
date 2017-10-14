@@ -116,4 +116,31 @@ class Utils
 
         return trim(mb_substr($origin, mb_strlen($substring)));
     }
+
+
+    /**
+     * Get a list of changesets
+     *
+     * @param string $path    Path to Git repo
+     * @param string $element File or folder to check
+     *
+     * @return array Array of changesets
+     */
+    public static function getChangesets($path, $element)
+    {
+        chdir($path);
+        exec('git checkout master');
+        exec("git log --pretty=format:\"%H %aI\" {$element}", $log);
+        $log = array_reverse($log);
+
+        $changesets = [];
+        foreach ($log as $line) {
+            $date = substr($line, 41, 10);
+            $date = str_replace('-', '', $date);
+            $changesets[$date] = substr($line, 0, 40);;
+        }
+        $changesets[date('Ymd')] = 'master';
+
+        return $changesets;
+    }
 }
