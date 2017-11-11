@@ -20,7 +20,7 @@ libraries_path = os.path.join(script_path, 'libraries')
 # Import Fluent Python library
 import_library(
     libraries_path, 'git', 'python-fluent',
-    'https://github.com/projectfluent/python-fluent', '0.4.2')
+    'https://github.com/projectfluent/python-fluent', '0.4.3')
 try:
     import fluent.syntax
 except ImportError as e:
@@ -55,7 +55,13 @@ class StringExtraction():
         '''Initialize object'''
 
         # Set defaults
-        self.supported_formats = ['.dtd', '.properties', '.ini', '.inc']
+        self.supported_formats = [
+            '.dtd',
+            '.ftl',
+            '.inc',
+            '.ini',
+            '.properties',
+        ]
         self.file_list = []
 
         self.strings = {}
@@ -159,17 +165,31 @@ class StringExtraction():
             try:
                 entities, map = file_parser.parse()
                 for entity in entities:
+                    # Ignore Junk
+                    if isinstance(entity, parser.Junk):
+                        continue
+
                     string_id = u'{}:{}'.format(file_name, unicode(entity))
-                    if not isinstance(entity, parser.Junk):
+                    word_count = entity.count_words()
+                    if file_extension == '.ftl':
+                        if entity.raw_val != '':
+                            self.strings[string_id] = entity.raw_val
+                        # Store attributes
+                        for attribute in entity.attributes:
+                            attr_string_id = u'{0}:{1}.{2}'.format(
+                                file_name, unicode(entity), unicode(attribute))
+                            self.strings[attr_string_id] = attribute.raw_val
+                    else:
                         self.strings[string_id] = entity.raw_val
-                        section = self.getGroup(file_name)
-                        self.stats[section] += 1
-                        word_count = self.count_words(entity.raw_val)
-                        self.stats['{}_w'.format(section)] += word_count
-                        # Add totals, ignoring mobile
-                        if section != 'mobile':
-                            self.stats['total'] += 1
-                            self.stats['total_w'] += word_count
+
+                    # Calculate stats
+                    section = self.getGroup(file_name)
+                    self.stats[section] += 1
+                    self.stats['{}_w'.format(section)] += word_count
+                    # Add totals, ignoring mobile
+                    if section != 'mobile':
+                        self.stats['total'] += 1
+                        self.stats['total_w'] += word_count
             except Exception as e:
                 print('Error parsing file: {}'.format(file_path))
                 print(e)
