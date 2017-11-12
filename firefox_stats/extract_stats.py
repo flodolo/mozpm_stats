@@ -22,7 +22,8 @@ import_library(
     libraries_path, 'git', 'python-fluent',
     'https://github.com/projectfluent/python-fluent', '0.4.3')
 try:
-    import fluent.syntax
+    from fluent.syntax import ast as ftl
+    from fluent.syntax import FluentParser
 except ImportError as e:
     print('Error importing python-fluent library')
     print(e)
@@ -39,6 +40,29 @@ except ImportError as e:
     print(e)
     sys.exit(1)
 
+
+class FluentEntity():
+
+    _word_count = None
+
+    def __init__(self, text):
+        ftl_parser = FluentParser()
+        self.entry = ftl_parser.parse_entry('temp={}'.format(text))
+
+    def count_words(self):
+        if self._word_count is None:
+            self._word_count = 0
+
+        def count_words(node):
+            if isinstance(node, ftl.TextElement):
+                self._word_count += len(node.value.split())
+            return node
+
+        self.entry.traverse(count_words)
+
+        return self._word_count
+
+
 class StringExtraction():
 
     excluded_folders = (
@@ -49,7 +73,7 @@ class StringExtraction():
         'mail',
         'other-licenses',
         'suite'
-    );
+    )
 
     def __init__(self, script_path, repository_path, date):
         '''Initialize object'''
@@ -211,25 +235,29 @@ class StringExtraction():
 
         # If there is cache, I need to count added/removed strings and words
         if self.cache:
+
+            def update_stats(str_list, stat_type):
+                for string_id in str_list:
+                    file_name = string_id.split(':')[0]
+                    section = self.getGroup(file_name)
+                    if file_name.endswith('.ftl'):
+                        ftl_entry = FluentEntity(self.strings[string_id])
+                        word_count = ftl_entry.count_words()
+                    else:
+                        word_count = self.count_words(self.strings[string_id])
+                    self.stats['{}_{}'.format(section, stat_type)] += 1
+                    self.stats['{}_{}_w'.format(
+                        section, stat_type)] += word_count
+                    if section != 'mobile':
+                        self.stats['total_{}'.format(stat_type)] += 1
+                        self.stats['total_{}_w'.format(
+                            stat_type)] += word_count
+
             added_strings = self.diff(self.strings.keys(), self.cache.keys())
-            for string_id in added_strings:
-                section = self.getGroup(string_id.split(':')[0])
-                word_count = self.count_words(self.strings[string_id])
-                self.stats['{}_added'.format(section)] += 1
-                self.stats['{}_added_w'.format(section)] += word_count
-                if section != 'mobile':
-                    self.stats['total_added'] += 1
-                    self.stats['total_added_w'] += word_count
+            update_stats(added_strings, 'added')
 
             removed_strings = self.diff(self.cache.keys(), self.strings.keys())
-            for string_id in removed_strings:
-                section = self.getGroup(string_id.split(':')[0])
-                word_count = self.count_words(self.cache[string_id])
-                self.stats['{}_removed'.format(section)] += 1
-                self.stats['{}_removed_w'.format(section)] += word_count
-                if section != 'mobile':
-                    self.stats['total_removed'] += 1
-                    self.stats['total_removed_w'] += word_count
+            update_stats(removed_strings, 'removed')
 
         # Import data
         self.stats['day'] = self.date
