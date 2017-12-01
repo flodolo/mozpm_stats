@@ -2,10 +2,13 @@
 <?php
 namespace PMStats;
 
+$types = ['lang', 'xliff', 'po'];
+
 $command_name = 'extract_stats';
 $command_help = "{$command_name} - Get stats for all lang files in a folder\n" .
-                "Usage: {$command_name} [type] [path]\n\n" .
-                "Example: {$command_name} ~/git/appstores\n";
+                "Usage: {$command_name} [type] [path]" .
+                "\nAvailable types: " . implode(', ', $types) .
+                "\nExample: {$command_name} lang ~/git/appstores\n";
 $min_parameters = 2;
 $missing_parameter = "This command needs more parameters, please check {$command_name} --help.\n";
 require_once __DIR__ . '/../inc/cli_init.php';
@@ -19,7 +22,7 @@ if (! $cli_path or ! is_dir($cli_path)) {
 }
 $cli_path = realpath($cli_path) . DIRECTORY_SEPARATOR;
 
-if (! in_array($cli_type, ['lang', 'xliff', 'po'])) {
+if (! in_array($cli_type, $types)) {
     die("Unknown type {$cli_type}.\n");
 }
 
