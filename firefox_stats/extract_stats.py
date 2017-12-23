@@ -233,31 +233,36 @@ class StringExtraction():
         connection.row_factory = sqlite3.Row
         cursor = connection.cursor()
 
-        # If there is cache, I need to count added/removed strings and words
-        if self.cache:
+        def update_stats(str_list, stat_type):
+            for string_id in str_list:
+                file_name = string_id.split(':')[0]
+                section = self.getGroup(file_name)
 
-            def update_stats(str_list, stat_type):
-                for string_id in str_list:
-                    file_name = string_id.split(':')[0]
-                    section = self.getGroup(file_name)
-                    if file_name.endswith('.ftl'):
-                        ftl_entry = FluentEntity(self.strings[string_id])
-                        word_count = ftl_entry.count_words()
-                    else:
-                        word_count = self.count_words(self.strings[string_id])
-                    self.stats['{}_{}'.format(section, stat_type)] += 1
-                    self.stats['{}_{}_w'.format(
-                        section, stat_type)] += word_count
-                    if section != 'mobile':
-                        self.stats['total_{}'.format(stat_type)] += 1
-                        self.stats['total_{}_w'.format(
-                            stat_type)] += word_count
+                # If string is removed, I need to count words from cache
+                # instead of the parsed content
+                if stat_type == 'added':
+                    message = self.strings[string_id]
+                else:
+                    message = self.cache[string_id]
 
-            added_strings = self.diff(self.strings.keys(), self.cache.keys())
-            update_stats(added_strings, 'added')
+                if file_name.endswith('.ftl'):
+                    ftl_entry = FluentEntity(message)
+                    word_count = ftl_entry.count_words()
+                else:
+                    word_count = self.count_words(message)
+                self.stats['{}_{}'.format(section, stat_type)] += 1
+                self.stats['{}_{}_w'.format(
+                    section, stat_type)] += word_count
+                if section != 'mobile':
+                    self.stats['total_{}'.format(stat_type)] += 1
+                    self.stats['total_{}_w'.format(
+                        stat_type)] += word_count
 
-            removed_strings = self.diff(self.cache.keys(), self.strings.keys())
-            update_stats(removed_strings, 'removed')
+        added_strings = self.diff(self.strings.keys(), self.cache.keys())
+        update_stats(added_strings, 'added')
+
+        removed_strings = self.diff(self.cache.keys(), self.strings.keys())
+        update_stats(removed_strings, 'removed')
 
         # Import data
         self.stats['day'] = self.date
