@@ -47,7 +47,7 @@ class FluentEntity():
 
     def __init__(self, text):
         ftl_parser = FluentParser()
-        self.entry = ftl_parser.parse_entry('temp={}'.format(text))
+        self.entry = ftl_parser.parse_entry(u'temp={}'.format(text))
 
     def count_words(self):
         if self._word_count is None:
