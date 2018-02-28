@@ -3,10 +3,10 @@
 # This script can be used to rename a project
 
 import argparse
+import datetime
 import os
 import sqlite3
 import sys
-
 
 def main():
     db_file = os.path.abspath(
@@ -14,7 +14,7 @@ def main():
             os.path.dirname(__file__), 'db', 'stats.db'
         )
     )
-    years = ['2015', '2016', '2017']
+    years = range(2015, datetime.datetime.now().year + 1)
 
     # Connect to SQLite database
     connection = sqlite3.connect(db_file)
