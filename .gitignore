@@ -2,5 +2,5 @@
 *.pyc
 composer.lock
 composer.phar
-libraries
+python-venv
 vendor
