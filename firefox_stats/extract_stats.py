@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import argparse
-from env_setup import import_library
 import json
 import logging
 import os
@@ -9,37 +8,26 @@ import re
 import subprocess
 import sqlite3
 import sys
-from ConfigParser import SafeConfigParser
 from datetime import datetime
+
+# Python 2/3 compatibility
+try:
+    from ConfigParser import SafeConfigParser
+except ImportError:
+    from configparser import SafeConfigParser
+import six
 
 logging.basicConfig()
 
-script_path = os.path.abspath(os.path.dirname(__file__))
-libraries_path = os.path.join(script_path, 'libraries')
-
-# Import Fluent Python library
-import_library(
-    libraries_path, 'git', 'python-fluent',
-    'https://github.com/projectfluent/python-fluent', '0.4.3')
+# Import libraries
 try:
+    from compare_locales import parser
     from fluent.syntax import ast as ftl
     from fluent.syntax import FluentParser
 except ImportError as e:
-    print('Error importing python-fluent library')
+    print('FATAL: make sure that dependencies are installed')
     print(e)
     sys.exit(1)
-
-# Import compare-locales
-import_library(
-    libraries_path, 'hg', 'compare-locales',
-    'https://hg.mozilla.org/l10n/compare-locales', 'RELEASE_2_1')
-try:
-    from compare_locales import parser
-except ImportError as e:
-    print('Error importing compare-locales library')
-    print(e)
-    sys.exit(1)
-
 
 class FluentEntity():
 
@@ -167,7 +155,8 @@ class StringExtraction():
 
         # Check if we have a list of strings stored from a previous run
         if os.path.isfile(self.cache_file):
-            self.cache = json.load(open(self.cache_file, 'r'))
+            with open(self.cache_file, 'r') as f:
+                self.cache = json.load(f)
         else:
             self.cache = {}
 
@@ -193,7 +182,7 @@ class StringExtraction():
                     if isinstance(entity, parser.Junk):
                         continue
 
-                    string_id = u'{}:{}'.format(file_name, unicode(entity))
+                    string_id = u'{}:{}'.format(file_name, six.text_type(entity))
                     word_count = entity.count_words()
                     if file_extension == '.ftl':
                         if entity.raw_val != '':
@@ -201,7 +190,7 @@ class StringExtraction():
                         # Store attributes
                         for attribute in entity.attributes:
                             attr_string_id = u'{0}:{1}.{2}'.format(
-                                file_name, unicode(entity), unicode(attribute))
+                                file_name, six.text_type(entity), six.text_type(attribute))
                             self.strings[attr_string_id] = attribute.raw_val
                     else:
                         self.strings[string_id] = entity.raw_val
@@ -220,9 +209,8 @@ class StringExtraction():
 
     def storeCache(self):
         '''Store cache file'''
-        f = open(self.cache_file, 'w')
-        f.write(json.dumps(self.strings, sort_keys=True))
-        f.close()
+        with open(self.cache_file, 'w') as f:
+            f.write(json.dumps(self.strings, sort_keys=True))
 
     def storeTotals(self):
         '''Store totals in DB'''
