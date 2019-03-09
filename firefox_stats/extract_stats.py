@@ -266,8 +266,8 @@ class StringExtraction():
         )
 
         print('Data stored for {}'.format(self.date))
-        connection.execute('VACUUM')
         connection.commit()
+        connection.execute('VACUUM')
         connection.close()
 
     def hasData(self):
