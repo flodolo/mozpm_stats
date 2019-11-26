@@ -1,21 +1,13 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import argparse
 import json
 import logging
 import os
 import re
-import subprocess
 import sqlite3
 import sys
 from datetime import datetime
-
-# Python 2/3 compatibility
-try:
-    from ConfigParser import SafeConfigParser
-except ImportError:
-    from configparser import SafeConfigParser
-import six
 
 logging.basicConfig()
 
@@ -29,13 +21,14 @@ except ImportError as e:
     print(e)
     sys.exit(1)
 
+
 class FluentEntity():
 
     _word_count = None
 
     def __init__(self, text):
         ftl_parser = FluentParser()
-        self.entry = ftl_parser.parse_entry(u'temp={}'.format(text))
+        self.entry = ftl_parser.parse_entry('temp={}'.format(text))
 
     def count_words(self):
         if self._word_count is None:
@@ -96,7 +89,8 @@ class StringExtraction():
     def extractFileList(self):
         '''Extract the list of supported files'''
 
-        for root, dirs, files in os.walk(self.repository_path, followlinks=True):
+        for root, dirs, files in os.walk(self.repository_path,
+                                         followlinks=True):
             for f in files:
                 for supported_format in self.supported_formats:
                     if f.endswith(supported_format):
@@ -126,11 +120,11 @@ class StringExtraction():
 
     def count_words(self, text):
         '''Count words in text (from compare-locales)'''
-        re_br = re.compile('<br\s*/?>', re.U)
-        re_sgml = re.compile('</?\w+.*?>', re.U | re.M)
+        re_br = re.compile(r'<br\s*/?>', re.U)
+        re_sgml = re.compile(r'</?\w+.*?>', re.U | re.M)
 
-        text = re_br.sub(u'\n', text)
-        text = re_sgml.sub(u'', text)
+        text = re_br.sub('\n', text)
+        text = re_sgml.sub('', text)
         return len(text.split())
 
     def diff(self, a, b):
@@ -182,15 +176,15 @@ class StringExtraction():
                     if isinstance(entity, parser.Junk):
                         continue
 
-                    string_id = u'{}:{}'.format(file_name, six.text_type(entity))
+                    string_id = '{}:{}'.format(file_name, entity)
                     word_count = entity.count_words()
                     if file_extension == '.ftl':
                         if entity.raw_val != '':
                             self.strings[string_id] = entity.raw_val
                         # Store attributes
                         for attribute in entity.attributes:
-                            attr_string_id = u'{0}:{1}.{2}'.format(
-                                file_name, six.text_type(entity), six.text_type(attribute))
+                            attr_string_id = '{0}:{1}.{2}'.format(
+                                file_name, entity, attribute)
                             self.strings[attr_string_id] = attribute.raw_val
                     else:
                         self.strings[string_id] = entity.raw_val
@@ -257,11 +251,16 @@ class StringExtraction():
         cursor.execute(
             'INSERT INTO stats \
              VALUES (NULL, :day, \
-             :browser, :browser_w, :browser_added, :browser_added_w, :browser_removed, :browser_removed_w, \
-             :devtools, :devtools_w, :devtools_added, :devtools_added_w, :devtools_removed, :devtools_removed_w, \
-             :mobile, :mobile_w, :mobile_added, :mobile_added_w, :mobile_removed, :mobile_removed_w, \
-             :shared, :shared_w, :shared_added, :shared_added_w, :shared_removed, :shared_removed_w, \
-             :total, :total_w, :total_added, :total_added_w, :total_removed, :total_removed_w)',
+             :browser, :browser_w, :browser_added, :browser_added_w, \
+             :browser_removed, :browser_removed_w, \
+             :devtools, :devtools_w, :devtools_added, :devtools_added_w, \
+             :devtools_removed, :devtools_removed_w, \
+             :mobile, :mobile_w, :mobile_added, :mobile_added_w, \
+             :mobile_removed, :mobile_removed_w, \
+             :shared, :shared_w, :shared_added, :shared_added_w, \
+             :shared_removed, :shared_removed_w, \
+             :total, :total_w, :total_added, :total_added_w, \
+             :total_removed, :total_removed_w)',
             self.stats
         )
 
