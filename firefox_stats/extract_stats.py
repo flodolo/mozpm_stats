@@ -2,46 +2,15 @@
 
 import argparse
 import json
-import logging
 import os
 import re
 import sqlite3
 import sys
 from datetime import datetime
-
-logging.basicConfig()
-
-# Import libraries
-try:
-    from compare_locales import parser
-    from fluent.syntax import ast as ftl
-    from fluent.syntax import FluentParser
-except ImportError as e:
-    print('FATAL: make sure that dependencies are installed')
-    print(e)
-    sys.exit(1)
-
-
-class FluentEntity():
-
-    _word_count = None
-
-    def __init__(self, text):
-        ftl_parser = FluentParser()
-        self.entry = ftl_parser.parse_entry('temp={}'.format(text))
-
-    def count_words(self):
-        if self._word_count is None:
-            self._word_count = 0
-
-        def count_words(node):
-            if isinstance(node, ftl.TextElement):
-                self._word_count += len(node.value.split())
-            return node
-
-        self.entry.traverse(count_words)
-
-        return self._word_count
+from compare_locales import parser
+from compare_locales.parser.fluent import FluentEntity, FluentParser
+from fluent.syntax import ast as ftl
+from fluent.syntax import FluentParser
 
 
 class StringExtraction():
@@ -120,7 +89,7 @@ class StringExtraction():
 
     def count_words(self, text):
         '''Count words in text (from compare-locales)'''
-        re_br = re.compile(r'<br\s*/?>', re.U)
+        re_br = re.compile('<br[ \t\r\n]*/?>', re.U)
         re_sgml = re.compile(r'</?\w+.*?>', re.U | re.M)
 
         text = re_br.sub('\n', text)
@@ -228,8 +197,10 @@ class StringExtraction():
                     message = self.cache[string_id]
 
                 if file_name.endswith('.ftl'):
-                    ftl_entry = FluentEntity(message)
-                    word_count = ftl_entry.count_words()
+                    ftl_parser = FluentParser()
+                    ftl_entry = ftl_parser.parse_entry(
+                        'temp={}'.format(message))
+                    word_count = FluentEntity(None, ftl_entry).count_words()
                 else:
                     word_count = self.count_words(message)
                 self.stats['{}_{}'.format(section, stat_type)] += 1
