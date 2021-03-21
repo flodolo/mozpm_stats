@@ -24,30 +24,42 @@ def main():
             "SELECT \
              SUM(total_added) as added, \
              SUM(total_added_w) as added_w, \
+             SUM(browser_added) as browser, \
+             SUM(browser_added_w) as browser_w, \
+             SUM(devtools_added) as devtools, \
+             SUM(devtools_added_w) as devtools_w, \
+             SUM(shared_added) as shared, \
+             SUM(shared_added_w) as shared_w, \
              SUM(total_removed) as removed, \
              SUM(total_removed_w) as removed_w \
              FROM stats WHERE day>=? AND day<=?",
-            ("{}0101".format(year), "{}1231".format(year)),
+            (f"{year}0101", f"{year}1231"),
         )
         totals = cursor.fetchone()
 
         # Get last total of the year
         cursor.execute(
             "SELECT * FROM stats WHERE day<=? ORDER BY day DESC",
-            ("{}1231".format(year),),
+            (f"{year}1231",),
         )
         final_total = cursor.fetchone()
 
+        print(f"{year}:")
         print(
-            "{}: Total: {} ({}) - Added: {} ({}) - Removed: {} ({})".format(
-                year,
-                final_total["total"],
-                final_total["total_w"],
-                totals["added"],
-                totals["added_w"],
-                totals["removed"],
-                totals["removed_w"],
-            )
+            f"  Total: {final_total['total']} ({final_total['total_w']}) - Added: {totals['added']} ({totals['added_w']}) - Removed: {totals['removed']} ({totals['removed_w']})"
+        )
+        print("  Added breakdown:")
+        browser_perc = round(float(totals["browser"]) / totals["added"] * 100, 2)
+        devtools_perc = round(float(totals["devtools"]) / totals["added"] * 100, 2)
+        shared_perc = round(float(totals["shared"]) / totals["added"] * 100, 2)
+        print(
+            f"    Browser: {totals['browser']} ({totals['browser_w']}) - {browser_perc} %"
+        )
+        print(
+            f"    DevTools: {totals['devtools']} ({totals['devtools_w']}) - {devtools_perc} %"
+        )
+        print(
+            f"    Shared: {totals['shared']} ({totals['shared_w']}) - {shared_perc} %"
         )
 
     # Clean up and close connection
