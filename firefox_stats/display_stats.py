@@ -10,6 +10,14 @@ import sys
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--monthly',
+        help='Display monthly breakdown',
+        action='store_true'
+    )
+    args = parser.parse_args()
+
     db_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "db", "stats.db"))
     years = range(2015, datetime.datetime.now().year + 1)
 
@@ -110,12 +118,13 @@ def main():
             f"    Shared: {year_totals['shared']} ({year_totals['shared_w']}) - {shared_perc} %"
         )
 
-        print("  Month breakdown (added):")
-        for month in range(1, 13):
-            if month in month_totals and month_totals[month]["added"] is not None:
-                print(
-                    f"    {month_names[month-1]}: {month_totals[month]['added']} ({month_totals[month]['added_w']})"
-                )
+        if args.monthly:
+            print("  Month breakdown (added):")
+            for month in range(1, 13):
+                if month in month_totals and month_totals[month]["added"] is not None:
+                    print(
+                        f"    {month_names[month-1]}: {month_totals[month]['added']} ({month_totals[month]['added_w']})"
+                    )
 
     # Clean up and close connection
     connection.close()
