@@ -238,7 +238,7 @@ class StringExtraction:
         connection.close()
 
     def hasData(self):
-        """ Check if there's already data for this day"""
+        """Check if there's already data for this day"""
         # Connect to SQLite database
         db_file = os.path.join(self.script_path, "db", "stats.db")
         connection = sqlite3.connect(db_file)

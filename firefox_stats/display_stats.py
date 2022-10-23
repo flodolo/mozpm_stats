@@ -12,9 +12,7 @@ import sys
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--monthly',
-        help='Display monthly breakdown',
-        action='store_true'
+        "--monthly", help="Display monthly breakdown", action="store_true"
     )
     args = parser.parse_args()
 
