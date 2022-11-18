@@ -15,16 +15,6 @@ from fluent.syntax import FluentParser
 
 class StringExtraction:
 
-    excluded_folders = (
-        "calendar",
-        "chat",
-        "editor",
-        "extensions",
-        "mail",
-        "other-licenses",
-        "suite",
-    )
-
     def __init__(self, script_path, repository_path, date):
         """Initialize object"""
 
@@ -128,12 +118,6 @@ class StringExtraction:
         for file_path in self.file_list:
             file_extension = os.path.splitext(file_path)[1]
             file_name = self.getRelativePath(file_path)
-
-            # Ignore folders unrelated to Firefox Desktop or Fennec
-            if file_name.startswith(self.excluded_folders):
-                continue
-            if file_name.endswith("region.properties"):
-                continue
 
             file_parser = parser.getParser(file_extension)
             file_parser.readFile(file_path)
