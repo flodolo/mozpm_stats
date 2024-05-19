@@ -6,7 +6,6 @@ import argparse
 import datetime
 import os
 import sqlite3
-import sys
 
 
 def main():

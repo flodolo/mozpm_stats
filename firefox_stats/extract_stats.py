@@ -5,13 +5,10 @@ import json
 import os
 import re
 import sqlite3
-import sys
 from datetime import datetime
 from compare_locales import parser
-from compare_locales.parser.fluent import FluentEntity, FluentParser
-from fluent.syntax import ast as ftl
+from compare_locales.parser.fluent import FluentEntity
 from fluent.syntax import FluentParser
-
 
 class StringExtraction:
 
