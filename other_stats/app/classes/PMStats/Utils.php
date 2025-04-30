@@ -117,7 +117,6 @@ class Utils
         return trim(mb_substr($origin, mb_strlen($substring)));
     }
 
-
     /**
      * Get a list of changesets
      *

@@ -16,8 +16,8 @@ class Po
      *
      * Loads strings from a .po file
      *
-     * @param string  $po_path      Path to the .po to load
-     * @param boolean $template     If I'm looking at templates
+     * @param string  $po_path  Path to the .po to load
+     * @param boolean $template If I'm looking at templates
      *
      * @return array Array of strings as [string_id => translation]
      */
@@ -72,8 +72,8 @@ class Po
     /**
      * Generate a unique ID for a string to store in Transvision.
      *
-     * @param string $file_name    .po file name
-     * @param string $string_id    String ID (context-original text)
+     * @param string $file_name .po file name
+     * @param string $string_id String ID (context-original text)
      *
      * @return string unique ID such as focus_android/app.po:1dafea7725862ca854c408f0e2df9c88
      */

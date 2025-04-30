@@ -131,7 +131,6 @@ class Stats
         return $stats;
     }
 
-
     /**
      * Get overall stats per year
      *

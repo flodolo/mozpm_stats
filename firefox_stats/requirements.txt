@@ -1,1 +1,1 @@
-compare-locales==9.0.*
+compare-locales~=9.0.0

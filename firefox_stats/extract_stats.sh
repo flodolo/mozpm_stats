@@ -6,17 +6,16 @@ root_path=$script_path/..
 function setupVirtualEnv() {
     # Create virtualenv folder if missing
     cd $root_path
-    if [ ! -d python-venv ]
+    if [ ! -d .venv ]
     then
         echo "Setting up new virtualenv..."
-        virtualenv python-venv || exit 1
+        uv venv || exit 1
     fi
 
     # Install or update dependencies
     echo "Installing dependencies in virtualenv"
-    source python-venv/bin/activate || exit 1
-    pip install --upgrade --quiet pip
-    pip install -r $script_path/requirements.txt --upgrade --quiet
+    source .venv/bin/activate || exit 1
+    uv pip install -r $script_path/requirements.txt --upgrade --quiet
     deactivate
 }
 
@@ -25,7 +24,7 @@ setupVirtualEnv
 
 # Activate virtualenv
 echo "Activating virtualenv..."
-source $root_path/python-venv/bin/activate || exit 1
+source $root_path/.venv/bin/activate || exit 1
 
 # Running main script
 python $script_path/extract_stats.py $@

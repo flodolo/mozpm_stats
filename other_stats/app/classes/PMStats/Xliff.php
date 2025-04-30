@@ -14,7 +14,7 @@ class Xliff
      *
      * Loads strings from a .xliff file
      *
-     * @param string $xliff_path   Path to the .xliff to load
+     * @param string $xliff_path Path to the .xliff to load
      *
      * @return array Array of strings as [string_id => translation]
      */
@@ -47,9 +47,9 @@ class Xliff
     /**
      * Generate a unique ID for a string.
      *
-     * @param string $file_name    .xliff file name
-     * @param string $file_orig    'original' attribute of the element's parent
-     * @param string $string_id    'id' attribute of the <trans-unit> element
+     * @param string $file_name .xliff file name
+     * @param string $file_orig 'original' attribute of the element's parent
+     * @param string $string_id 'id' attribute of the <trans-unit> element
      *
      * @return string unique ID such as firefox_ios/firefox-ios.xliff:1dafea7725862ca854c408f0e2df9c88
      */
