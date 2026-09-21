@@ -5,13 +5,14 @@ import json
 import os
 import re
 import sqlite3
-from datetime import datetime
-from compare_locales import parser
-from compare_locales.parser.fluent import FluentEntity
-from fluent.syntax import FluentParser
+from datetime import datetime, timezone
+from moz.l10n.formats import Format
+from moz.l10n.message import serialize_message
+from moz.l10n.model import Entry, SelectMessage
+from moz.l10n.resource import parse_resource
+
 
 class StringExtraction:
-
     def __init__(self, script_path, repository_path, date):
         """Initialize object"""
 
@@ -38,7 +39,7 @@ class StringExtraction:
         self.repository_path = repository_path.rstrip(os.path.sep)
 
         if date is None:
-            self.date = datetime.utcnow().strftime("%Y%m%d")
+            self.date = datetime.now(timezone.utc).strftime("%Y%m%d")
         else:
             self.date = date
 
@@ -82,6 +83,76 @@ class StringExtraction:
         text = re_sgml.sub("", text)
         return len(text.split())
 
+    def getPatterns(self, message):
+        """Get the list of patterns in a message"""
+
+        if isinstance(message, SelectMessage):
+            return list(message.variants.values())
+
+        return [message.pattern]
+
+    def countMessageWords(self, message, message_format):
+        """Count words in a message, ignoring placeables"""
+
+        word_count = 0
+        for pattern in self.getPatterns(message):
+            # Only literal text is counted, placeables are ignored
+            text_parts = [part for part in pattern if isinstance(part, str)]
+            if message_format == Format.fluent:
+                # Each text element is counted separately, since placeables
+                # act as word boundaries
+                word_count += sum(len(part.split()) for part in text_parts)
+            else:
+                word_count += self.count_words("".join(text_parts))
+
+        return word_count
+
+    def countStoredWords(self, file_name, message):
+        """Count words in a value stored in cache, parsing it back"""
+
+        if message is None or message.strip() == "":
+            return 0
+
+        extension = os.path.splitext(file_name)[1]
+        if extension == ".ftl":
+            # Assign the value to a message as an indented block, so that
+            # multiline values and select expressions remain valid. An empty
+            # placeable is added in front of the value, since a pattern can't
+            # start with a special character (e.g. "." or "*"); placeables are
+            # ignored when counting words.
+            message_format = Format.fluent
+            indented_message = '{""}' + "\n".join(
+                line if index == 0 else "    {}".format(line)
+                for index, line in enumerate(message.splitlines())
+            )
+            source = "temp =\n    {}\n".format(indented_message)
+        elif extension == ".dtd":
+            message_format = Format.dtd
+            source = '<!ENTITY temp "{}">'.format(message)
+        elif extension == ".inc":
+            message_format = Format.inc
+            source = "#define temp {}".format(message)
+        elif extension == ".ini":
+            message_format = Format.ini
+            source = "[Strings]\ntemp={}".format(message)
+        else:
+            message_format = Format.properties
+            source = "temp = {}".format(message)
+
+        try:
+            resource = parse_resource(message_format, source)
+        except Exception:
+            # If the value can't be parsed back, count words in the raw text
+            return self.count_words(message)
+
+        word_count = 0
+        for section in resource.sections:
+            for entry in section.entries:
+                if isinstance(entry, Entry):
+                    word_count += self.countMessageWords(entry.value, message_format)
+
+        return word_count
+
     def diff(self, a, b):
         """Diff two lists"""
         b = set(b)
@@ -113,43 +184,50 @@ class StringExtraction:
         self.extractFileList()
 
         for file_path in self.file_list:
-            file_extension = os.path.splitext(file_path)[1]
             file_name = self.getRelativePath(file_path)
 
-            file_parser = parser.getParser(file_extension)
-            file_parser.readFile(file_path)
             try:
-                entities = file_parser.parse()
-                for entity in entities:
-                    # Ignore Junk
-                    if isinstance(entity, parser.Junk):
-                        continue
-
-                    string_id = "{}:{}".format(file_name, entity)
-                    word_count = entity.count_words()
-                    if file_extension == ".ftl":
-                        if entity.raw_val != "":
-                            self.strings[string_id] = entity.raw_val
-                        # Store attributes
-                        for attribute in entity.attributes:
-                            attr_string_id = "{0}:{1}.{2}".format(
-                                file_name, entity, attribute
-                            )
-                            self.strings[attr_string_id] = attribute.raw_val
-                    else:
-                        self.strings[string_id] = entity.raw_val
-
-                    # Calculate stats
-                    section = self.getGroup(file_name)
-                    self.stats[section] += 1
-                    self.stats["{}_w".format(section)] += word_count
-                    # Add totals, ignoring mobile
-                    if section != "mobile":
-                        self.stats["total"] += 1
-                        self.stats["total_w"] += word_count
+                resource = parse_resource(file_path)
             except Exception as e:
                 print("Error parsing file: {}".format(file_path))
                 print(e)
+                continue
+
+            group = self.getGroup(file_name)
+            for res_section in resource.sections:
+                for entry in res_section.entries:
+                    # Ignore standalone comments
+                    if not isinstance(entry, Entry):
+                        continue
+
+                    if resource.format == Format.ini:
+                        # Ignore the section name in .ini files
+                        entry_id = ".".join(entry.id)
+                    else:
+                        entry_id = ".".join(res_section.id + entry.id)
+                    string_id = "{}:{}".format(file_name, entry_id)
+
+                    word_count = self.countMessageWords(entry.value, resource.format)
+                    self.strings[string_id] = serialize_message(
+                        resource.format, entry.value
+                    )
+                    # Store attributes (Fluent only)
+                    for attribute, attr_value in entry.properties.items():
+                        attr_string_id = "{}.{}".format(string_id, attribute)
+                        self.strings[attr_string_id] = serialize_message(
+                            resource.format, attr_value
+                        )
+                        word_count += self.countMessageWords(
+                            attr_value, resource.format
+                        )
+
+                    # Calculate stats
+                    self.stats[group] += 1
+                    self.stats["{}_w".format(group)] += word_count
+                    # Add totals, ignoring mobile
+                    if group != "mobile":
+                        self.stats["total"] += 1
+                        self.stats["total_w"] += word_count
 
     def storeCache(self):
         """Store cache file"""
@@ -177,12 +255,7 @@ class StringExtraction:
                 else:
                     message = self.cache[string_id]
 
-                if file_name.endswith(".ftl"):
-                    ftl_parser = FluentParser()
-                    ftl_entry = ftl_parser.parse_entry("temp={}".format(message))
-                    word_count = FluentEntity(None, ftl_entry).count_words()
-                else:
-                    word_count = self.count_words(message)
+                word_count = self.countStoredWords(file_name, message)
                 self.stats["{}_{}".format(section, stat_type)] += 1
                 self.stats["{}_{}_w".format(section, stat_type)] += word_count
                 if section != "mobile":
@@ -226,7 +299,7 @@ class StringExtraction:
         connection.row_factory = sqlite3.Row
         cursor = connection.cursor()
 
-        day = datetime.utcnow().strftime("%Y%m%d")
+        day = datetime.now(timezone.utc).strftime("%Y%m%d")
         # Check if we already have data for this day
         cursor.execute("SELECT ID FROM stats WHERE day=?", (day,))
         data = cursor.fetchone()

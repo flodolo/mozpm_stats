@@ -39,15 +39,14 @@ def main():
     ]
 
     for year in years:
-
         # Get totals per month
         month_totals = {}
         for month in range(1, 13):
             start_date = f"{year}{month:02}01"
             if month == 12:
-                end_date = f"{year+1}0101"
+                end_date = f"{year + 1}0101"
             else:
-                end_date = f"{year}{month+1:02}01"
+                end_date = f"{year}{month + 1:02}01"
 
             cursor.execute(
                 "SELECT \
@@ -120,7 +119,7 @@ def main():
             for month in range(1, 13):
                 if month in month_totals and month_totals[month]["added"] is not None:
                     print(
-                        f"    {month_names[month-1]}: {month_totals[month]['added']} ({month_totals[month]['added_w']})"
+                        f"    {month_names[month - 1]}: {month_totals[month]['added']} ({month_totals[month]['added_w']})"
                     )
 
     # Clean up and close connection
